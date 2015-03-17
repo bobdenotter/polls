@@ -1,0 +1,33 @@
+{% macro result(name, result, total) %}
+    {% if name is not empty %}
+        {% set percentage = ((result/total)*100)|round %}
+
+    <div class='score_outer'>
+        <div class='score_inner' style='width: {{percentage}}%;'>&nbsp;</div>
+        <div class='score_name'>{{ name }}</div>
+        <div class='score_percentage'>{{ percentage }} %</div>
+    </div>
+
+    {% endif %}
+{% endmacro %}
+{% import _self as macro %}
+
+<html>
+<head>
+</head>
+<body>
+<div class="bolt_poll" id="poll_{{poll.id}}">
+
+    <div>{{ poll.title }}</div>
+
+            {{ macro.result(poll.option1, results[1], total) }}
+            {{ macro.result(poll.option2, results[2], total) }}
+            {{ macro.result(poll.option3, results[3], total) }}
+            {{ macro.result(poll.option4, results[4], total) }}
+            {{ macro.result(poll.option5, results[5], total) }}
+
+</div>
+
+</body>
+</html>
+

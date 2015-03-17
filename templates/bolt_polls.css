@@ -1,0 +1,75 @@
+.bolt_poll {
+    max-width: 300px;
+    border: 1px solid #BBB;
+    padding: 4px;
+    font-size: 15px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.bolt_poll div {
+    font-weight: bold;
+    text-align: center;
+    padding: 4px;
+}
+
+.bolt_poll ul {
+    margin: 0;
+    padding: 0;
+}
+
+.bolt_poll li {
+    list-style-type: none;
+}
+
+.bolt_poll button {
+    background-color: #DDD;
+    border: 1px solid #CCC;
+    margin: 2px 2px;
+    padding: 4px;
+    width: 100%;
+    font-size: 15px;
+    height: 30px;
+    cursor: pointer;
+}
+
+
+.bolt_poll button:hover {
+    background-color: #BBB;
+    border: 1px solid #AAA;
+}
+
+.bolt_poll .score_outer {
+    border: 1px solid #CCC;
+    background-color: #FFF;
+    padding: 0;
+    margin: 4px 2px;
+    height: 26px;
+    position: relative;
+}
+
+.bolt_poll .score_inner {
+    border: 0;
+    background-color: #CCC;
+    margin: 0;
+    float: left;
+}
+
+.bolt_poll .score_name {
+    border: 0;
+    background-color: transparent;
+    margin: 0;
+    position: absolute;
+    left: 0;
+    font-size: 15px;
+    font-weight: normal;
+}
+
+.bolt_poll .score_percentage {
+    border: 0;
+    background-color: transparent;
+    margin: 0;
+    font-size: 14px;
+    float: right;
+}
+
+

@@ -1,5 +1,5 @@
 {
-    "name": "bolt/waffleorders",
+    "name": "bobdenotter/polls",
     "description": "Test-drives the new automatic extension table creation functionality",
     "type": "bolt-extension",
     "keywords": [],
@@ -9,8 +9,8 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Tobias Dammers",
-            "email": "tobias@twokings.nl"
+            "name": "Bob den Otter",
+            "email": "bob@twokings.nl"
         }
     ],
     "autoload": {
@@ -18,7 +18,7 @@
             "init.php"
         ],
         "psr-4": {
-            "Bolt\\Extension\\Bolt\\WaffleOrders\\": ""
+            "Bolt\\Extension\\BobdenOtter\\Polls\\": ""
         }
     }
 }

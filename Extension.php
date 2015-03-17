@@ -1,19 +1,10 @@
 <?php
 /**
- * A slightly useless extension to test/demonstrate how to make use of Bolt's
- * automatic table updates for an extension's own tables.
  *
- * This extension implements a CRUD cycle for "waffle orders", exposed
- * on the "/waffle" endpoint. Users can provide a name and a number of waffles,
- * and these orders will be stored and displayed in descending order.
- *
- * When you activate this extension, the database check will add a new table to
- * your database.
- *
- * @author Tobias Dammers <tobias@twokings.nl>
+ * @author Bob den Otter <bob@twokings.nl>
  */
 
-namespace Bolt\Extension\Bolt\WaffleOrders;
+namespace Bolt\Extension\BobdenOtter\Polls;
 
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\DBAL\Schema\Schema;
@@ -22,7 +13,7 @@ class Extension extends \Bolt\BaseExtension
 {
     public function getName()
     {
-        return "Waffle Orders";
+        return "Polls";
     }
 
     public $my_table_name;
@@ -30,23 +21,100 @@ class Extension extends \Bolt\BaseExtension
     public function initialize()
     {
         $prefix = $this->app['config']->get('general/database/prefix', "bolt_");
-        $this->my_table_name = $prefix . 'waffle_orders';
-        $me = $this;
-        $this->app['integritychecker']->registerExtensionTable(
-            function (Schema $schema) use ($me) {
-                $table = $schema->createTable($me->my_table_name);
-                $table->addColumn("id", "integer", array('autoincrement' => true));
-                $table->setPrimaryKey(array("id"));
-                $table->addColumn("customer_name", "string", array("length" => 64));
-                $table->addIndex(array('customer_name'));
-                $table->addColumn("num_waffles_ordered", "integer");
+        $this->votes_table = $prefix . 'polls_votes';
+        $this->polls_table = $this->config['tablename'];
 
-                return $table;
-            });
-        $this->app->get("/waffles", array($this, 'show_waffles'))->bind('show_waffles');
-        $this->app->post("/waffles/add", array($this, 'add_waffles'))->bind('add_waffles');
-        $this->app->post("/waffles/clear", array($this, 'clear_waffles'))->bind('clear_waffles');
+        if ($this->app['config']->getWhichEnd() == 'backend') {
+            //$this->addTables();
+        } else if ($this->app['config']->getWhichEnd() == 'frontend') {
+            $this->app['htmlsnippets'] = true;
+            $this->addJquery();
+            $this->addCss('templates/bolt_polls.css');
+            $this->addJavascript('templates/bolt_polls.js');
+        }
+
+        $this->app->get("/poll_extension/fetch/{id}", array($this, 'fetch'))->bind('fetch');
+        $this->app->get("/poll_extension/vote", array($this, 'vote'))->bind('vote');
+
     }
+
+
+    public function fetch($id, Request $request)
+    {
+
+        if (is_numeric($id)) {
+            $poll = $this->app['storage']->getContent($this->polls_table, array('id' => $id, 'returnsingle' => true));
+        } else {
+            return "no poll";
+        }
+
+        $token = $this->getToken($id);
+
+        // Check if we've voted yet..
+        $votedyet = $this->app['db']->fetchAll('SELECT * FROM ' . $this->votes_table . ' WHERE token = "' . $token . '" LIMIT 1;');
+
+
+        if (rand(0,1) || !$votedyet) {
+
+            $template_vars = array('poll' => $poll);
+
+            return $this->render('poll_view.twig', $template_vars);
+
+        } else {
+
+            $temp_results = $this->app['db']->fetchAll('SELECT COUNT(vote) AS count, vote FROM ' . $this->votes_table . ' GROUP BY vote');
+            $results = array('1' => 0, '2' => 0, '3' => 0, '4' => 0, '5' => 0);
+            $total = 0;
+            foreach($temp_results as $result) {
+                $results[ $result['vote'] ] = $result['count'];
+                $total += $result['count'];
+            }
+
+            $template_vars = array('poll' => $poll, 'total' => $total, 'results' => $results);
+
+            return $this->render('poll_results.twig', $template_vars);
+
+        }
+
+
+    }
+
+
+    public function vote(Request $request)
+    {
+
+
+        list($poll_id, $vote) = explode("_", $this->app['request']->get('vote'));
+
+        if (is_numeric($poll_id) && is_numeric($vote)) {
+
+            $poll = $this->app['storage']->getContent($this->polls_table, array('id' => $poll_id, 'returnsingle' => true));
+
+            $token = $this->getToken($poll_id);
+
+            $this->app['db']->executeQuery('DELETE FROM ' . $this->votes_table . ' WHERE token = "' . $token . '" LIMIT 1;');
+            $this->app['db']->executeUpdate('INSERT INTO ' . $this->votes_table .
+                ' (token, poll_id, vote) ' .
+                ' VALUES (:token, :poll_id, :vote) ',
+                array(
+                    ':token' => $token,
+                    ':poll_id' => intval($poll_id),
+                    ':vote' => intval($vote)
+                    ));
+
+        }
+
+        // if (is_numeric($id)) {
+        //     $poll = $this->app['storage']->getContent($this->polls_table, array('id' => $id, 'returnsingle' => true));
+        // }
+
+        $template_vars = array('poll' => $poll);
+
+        return $this->fetch($poll_id, $request);
+
+    }
+
+
 
     public function show_waffles(Request $request, $errors = null)
     {
@@ -116,5 +184,41 @@ class Extension extends \Bolt\BaseExtension
 
         return $this->app['render']->render($template, $data);
     }
+
+    private function addTables()
+    {
+
+        $me = $this;
+        $this->app['integritychecker']->registerExtensionTable(
+            function (Schema $schema) use ($me) {
+                $table = $schema->createTable($me->votes_table);
+                $table->addColumn("id", "integer", array('autoincrement' => true));
+                $table->setPrimaryKey(array("id"));
+                $table->addColumn("token", "string", array("length" => 16));
+                $table->addColumn("poll_id", "integer");
+                $table->addColumn("vote", "integer");
+                return $table;
+            });
+
+    }
+
+    private function getToken($poll_id = '')
+    {
+        $request = Request::createFromGlobals();
+
+        $token = sprintf("%s-%s-%s",
+                $poll_id, // + time(),
+                $request->getClientIp(),
+                $request->server->get('HTTP_USER_AGENT')
+            );
+
+        $token = substr(md5($token), 0, 16);
+
+        // dump($token);
+
+        return $token;
+
+    }
+
 
 }

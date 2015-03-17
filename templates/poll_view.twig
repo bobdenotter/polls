@@ -1,0 +1,27 @@
+{% macro option(id, value, name) %}
+    {% if name is not empty %}
+    <li>
+       <button class='pollvote' value='{{ id }}_{{ value }}'>{{ name}}</button>
+    </li>
+    {% endif %}
+{% endmacro %}
+{% import _self as macro %}
+
+<html>
+<head>
+</head>
+<body>
+<div class="bolt_poll" id="poll_{{poll.id}}">
+
+    <div>{{ poll.title }}</div>
+    <ul>
+            {{ macro.option(poll.id, 1, poll.option1) }}
+            {{ macro.option(poll.id, 2, poll.option2) }}
+            {{ macro.option(poll.id, 3, poll.option3) }}
+            {{ macro.option(poll.id, 4, poll.option4) }}
+            {{ macro.option(poll.id, 5, poll.option5) }}
+    </ul>
+</div>
+</body>
+</html>
+

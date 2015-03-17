@@ -1,5 +1,5 @@
 <?php
 
-use Bolt\Extension\Bolt\WaffleOrders\Extension;
+use Bolt\Extension\BobdenOtter\Polls\Extension;
 
 $app['extensions']->register(new Extension($app));
