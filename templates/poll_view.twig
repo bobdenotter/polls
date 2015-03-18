@@ -6,22 +6,13 @@
     {% endif %}
 {% endmacro %}
 {% import _self as macro %}
-
-<html>
-<head>
-</head>
-<body>
-<div class="bolt_poll" id="poll_{{poll.id}}">
-
+<div class="bolt_poll {% if options.class is defined %}{{ options.class }}{% endif %}" id="poll_{{poll.id}}">
     <div>{{ poll.title }}</div>
     <ul>
-            {{ macro.option(poll.id, 1, poll.option1) }}
-            {{ macro.option(poll.id, 2, poll.option2) }}
-            {{ macro.option(poll.id, 3, poll.option3) }}
-            {{ macro.option(poll.id, 4, poll.option4) }}
-            {{ macro.option(poll.id, 5, poll.option5) }}
+        {{ macro.option(poll.id, 1, poll.option1) }}
+        {{ macro.option(poll.id, 2, poll.option2) }}
+        {{ macro.option(poll.id, 3, poll.option3) }}
+        {{ macro.option(poll.id, 4, poll.option4) }}
+        {{ macro.option(poll.id, 5, poll.option5) }}
     </ul>
 </div>
-</body>
-</html>
-

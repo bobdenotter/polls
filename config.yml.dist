@@ -1,3 +1,12 @@
 # Polls configuration.
 
 tablename: polls
+
+# The js file to use. Set this to `false`, if you want to include the JS in your own file.
+javascript: templates/bolt_polls.js
+
+# The css file to use. Set this to `false`, if you want to include the CSS in your own file.
+css: templates/bolt_polls.css
+
+# Set this to 'true' when debugging / Styling. It allows you to add as many votes as you want.
+allowcheats: false

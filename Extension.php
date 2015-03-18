@@ -6,7 +6,6 @@
 
 namespace Bolt\Extension\BobdenOtter\Polls;
 
-use Symfony\Component\HttpFoundation\Request;
 use Doctrine\DBAL\Schema\Schema;
 
 class Extension extends \Bolt\BaseExtension
@@ -14,6 +13,11 @@ class Extension extends \Bolt\BaseExtension
     public function getName()
     {
         return "Polls";
+    }
+
+    public function isSafe()
+    {
+        return true;
     }
 
     public $my_table_name;
@@ -25,21 +29,28 @@ class Extension extends \Bolt\BaseExtension
         $this->polls_table = $this->config['tablename'];
 
         if ($this->app['config']->getWhichEnd() == 'backend') {
-            //$this->addTables();
-        } else if ($this->app['config']->getWhichEnd() == 'frontend') {
-            $this->app['htmlsnippets'] = true;
-            $this->addJquery();
-            $this->addCss('templates/bolt_polls.css');
-            $this->addJavascript('templates/bolt_polls.js');
+            $this->addTables();
         }
+
+        // Whether or not to add our own snippets.
+        $this->app['htmlsnippets'] = true;
 
         $this->app->get("/poll_extension/fetch/{id}", array($this, 'fetch'))->bind('fetch');
         $this->app->get("/poll_extension/vote", array($this, 'vote'))->bind('vote');
 
+        $this->addTwigFunction('bolt_poll', 'embed', array('safe' => 'html'));
+
+    }
+
+    public function embed($id, $options = array())
+    {
+        $html = $this->fetch($id, $options);
+
+        return new \Twig_Markup($html, 'UTF-8');
     }
 
 
-    public function fetch($id, Request $request)
+    public function fetch($id, $options = array())
     {
 
         if (is_numeric($id)) {
@@ -48,15 +59,24 @@ class Extension extends \Bolt\BaseExtension
             return "no poll";
         }
 
+        if ($this->app['htmlsnippets']) {
+            if (!empty($this->config['css'])) {
+                $this->addCss('templates/bolt_polls.css');
+            }
+            if (!empty($this->config['javascript'])) {
+                $this->addJquery();
+                $this->addJavascript('templates/bolt_polls.js', true);
+                $this->addSnippet('aftermeta', '<script>var boltpolls_url = "' . $this->app['paths']['root'] . 'poll_extension/vote";</script>');
+        }   }
+
         $token = $this->getToken($id);
 
         // Check if we've voted yet..
         $votedyet = $this->app['db']->fetchAll('SELECT * FROM ' . $this->votes_table . ' WHERE token = "' . $token . '" LIMIT 1;');
 
+        if (!$votedyet) {
 
-        if (rand(0,1) || !$votedyet) {
-
-            $template_vars = array('poll' => $poll);
+            $template_vars = array('poll' => $poll, 'options' => $options);
 
             return $this->render('poll_view.twig', $template_vars);
 
@@ -70,7 +90,7 @@ class Extension extends \Bolt\BaseExtension
                 $total += $result['count'];
             }
 
-            $template_vars = array('poll' => $poll, 'total' => $total, 'results' => $results);
+            $template_vars = array('poll' => $poll, 'total' => $total, 'results' => $results, 'options' => $options);
 
             return $this->render('poll_results.twig', $template_vars);
 
@@ -80,10 +100,8 @@ class Extension extends \Bolt\BaseExtension
     }
 
 
-    public function vote(Request $request)
+    public function vote()
     {
-
-
         list($poll_id, $vote) = explode("_", $this->app['request']->get('vote'));
 
         if (is_numeric($poll_id) && is_numeric($vote)) {
@@ -101,82 +119,16 @@ class Extension extends \Bolt\BaseExtension
                     ':poll_id' => intval($poll_id),
                     ':vote' => intval($vote)
                     ));
-
         }
 
-        // if (is_numeric($id)) {
-        //     $poll = $this->app['storage']->getContent($this->polls_table, array('id' => $id, 'returnsingle' => true));
-        // }
+        $this->app['htmlsnippets'] = false;
 
-        $template_vars = array('poll' => $poll);
 
-        return $this->fetch($poll_id, $request);
+        return $this->fetch($poll_id);
 
     }
 
 
-
-    public function show_waffles(Request $request, $errors = null)
-    {
-        $waffles = $this->app['db']->fetchAll(
-            'SELECT customer_name, num_waffles_ordered FROM ' .
-            $this->my_table_name .
-            ' ORDER BY id DESC LIMIT 100');
-        $template_vars = array('waffles' => $waffles);
-        if (is_array($errors)) {
-            $template_vars['errors'] = $errors;
-        }
-        if ($request->getMethod() === 'POST') {
-            $keys = array('customer_name', 'num_waffles_ordered');
-            foreach ($keys as $key) {
-                $template_vars['postData'][$key] = $request->get($key);
-            }
-        }
-
-        return $this->render('waffles.twig', $template_vars);
-    }
-
-    public function clear_waffles(Request $request)
-    {
-        $rows_deleted = $this->app['db']->executeUpdate('DELETE FROM ' . $this->my_table_name);
-
-        return $this->app->redirect('/waffles');
-    }
-
-    public function add_waffles(Request $request)
-    {
-        $customer_name = trim($request->get('customer_name'));
-        $num_waffles_ordered = intval($request->get('num_waffles_ordered'));
-        $errors = array();
-
-        if (empty($customer_name)) {
-            $errors['customer_name'] = 'Please provide a name';
-        }
-        if ($num_waffles_ordered <= 0) {
-            $errors['num_waffles_ordered'] = 'You must order at least one waffle';
-        }
-        if ($num_waffles_ordered > 100) {
-            $errors['num_waffles_ordered'] = 'Sorry, we don\'t have this many waffles';
-        }
-
-        if (empty($errors)) {
-            $rows_affected = $this->app['db']->executeUpdate('INSERT INTO ' .
-                $this->my_table_name .
-                ' (customer_name, num_waffles_ordered) ' .
-                ' VALUES (:customer_name, :num_waffles_ordered) ',
-                array(
-                    ':customer_name' => $customer_name,
-                    ':num_waffles_ordered' => $num_waffles_ordered,
-                    ));
-            if ($rows_affected === 1) {
-                return $this->app->redirect('/waffles');
-            } else {
-                $errors['general'] = 'Sorry, something went wrong';
-            }
-        }
-
-        return $this->show_waffles($request, $errors);
-    }
 
     private function render($template, $data)
     {
@@ -204,12 +156,13 @@ class Extension extends \Bolt\BaseExtension
 
     private function getToken($poll_id = '')
     {
-        $request = Request::createFromGlobals();
+        // $request = Request::createFromGlobals();
 
-        $token = sprintf("%s-%s-%s",
-                $poll_id, // + time(),
-                $request->getClientIp(),
-                $request->server->get('HTTP_USER_AGENT')
+        $token = sprintf("%s-%s-%s-%s",
+                $poll_id,
+                $this->app['request']->getClientIp(),
+                $this->app['request']->server->get('HTTP_USER_AGENT'),
+                $this->config['allowcheats'] ? time() : ''
             );
 
         $token = substr(md5($token), 0, 16);

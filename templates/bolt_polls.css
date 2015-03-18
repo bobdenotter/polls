@@ -24,6 +24,7 @@
 .bolt_poll button {
     background-color: #DDD;
     border: 1px solid #CCC;
+    color: #666;
     margin: 2px 2px;
     padding: 4px;
     width: 100%;
@@ -36,6 +37,7 @@
 .bolt_poll button:hover {
     background-color: #BBB;
     border: 1px solid #AAA;
+    color: #333;
 }
 
 .bolt_poll .score_outer {
@@ -43,14 +45,15 @@
     background-color: #FFF;
     padding: 0;
     margin: 4px 2px;
-    height: 26px;
+    height: 30px;
     position: relative;
 }
 
 .bolt_poll .score_inner {
     border: 0;
-    background-color: #CCC;
+    background-color: #BBB;
     margin: 0;
+    height: 28px;
     float: left;
 }
 
